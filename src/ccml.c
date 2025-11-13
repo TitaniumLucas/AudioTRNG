@@ -1,7 +1,17 @@
 #include "ccml.h"
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <assert.h>
+
+#define eprintf(fmt, ...) fprintf(stderr, fmt "\n", __VA_ARGS__)
+
+#define AT_CCML_MAX_SYSTEM_SIZE 8
+
+static void at_assert_little_endian() {
+    int i = 1;
+    assert(*((char *)&i) == 1);
+}
 
 /* Temporary, would be replaced by requesting an audio recording 
    containing `sample_size` samples of 1 byte each. */
@@ -48,30 +58,47 @@ static inline uint64_t at_bitwise_double_to_u64(double d) {
     return u64;
 }
 
+static inline uint64_t at_bitwise_swap(uint64_t u64) {
+    return ((u64 & 0xFFFFFFFFULL) << 32) | ((u64 >> 32) & 0xFFFFFFFFULL);
+}
+
 void at_coupled_chaotic_map_lattice() {
-    size_t output_size_bits = 1024; /* = N */
+    /* The double-to-u64 cast only works if the system is little endian. */
+    at_assert_little_endian();
+
+    size_t output_size_bits = 2048; /* = N */
+    size_t output_size = output_size_bits / 8;
+
+    /* Assert output size in bytes is multiple of 256, for convenience. */
+    assert(output_size_bits % 32 == 0);
+
     size_t system_size = 8; /* = L */    
+    assert(system_size % 2 == 0);
+
     size_t n_iterations = system_size / 2; /* = lambda */
     size_t sample_size = output_size_bits / 32; /* = n */
+
+    size_t block_output_size = system_size / 2 * sizeof(uint64_t);
 
     uint8_t *samples = malloc(sample_size);
     assert(samples != NULL);
     at_init_samples(samples, sample_size);
 
+    uint8_t *output = malloc(output_size);
+    assert(output != NULL);
+
     for (size_t i = 0; i < sample_size; i++) {
-        /* Extract 3 bits from each sample: modify in-place as samples are not 
-           used elsewhere. */
         samples[i] &= 0x07;
     }
 
     double state[8];
     at_init_ccml_state(state);
 
-    while (1) { // TODO
+    for (size_t block = 0; block < output_size / block_output_size; block++) {
         at_ccml_perturb_state(state, samples + 0, system_size); // TODO: move through samples
 
         for (size_t i = 0; i < n_iterations; i++) {
-            double next_state[8];
+            double next_state[AT_CCML_MAX_SYSTEM_SIZE];
             for (size_t j = 0; j < system_size; j++) {
                 double x       = state[j];
                 double x_left  = state[(j - 1 + system_size) % system_size];
@@ -83,15 +110,25 @@ void at_coupled_chaotic_map_lattice() {
             memcpy(state, next_state, system_size * sizeof(double));
         }
 
-        uint64_t outputs[8];
-
+        uint64_t local_output[AT_CCML_MAX_SYSTEM_SIZE];
         for (size_t i = 0; i < system_size; i++) {
-            outputs[i] = at_bitwise_double_to_u64(state[i]);
+            local_output[i] = at_bitwise_double_to_u64(state[i]);
         }
 
+        size_t output_index = block * block_output_size;
+        uint64_t *block_output = (uint64_t *)(output + output_index);
         for (size_t i = 0; i < system_size / 2; i++) {
-            // TODO: swap
-            outputs[i] = outputs[i] ^ outputs[i + system_size / 2];
+            uint64_t other   = local_output[i + system_size / 2];
+            uint64_t swapped = at_bitwise_swap(other);
+
+            block_output[i] = local_output[i] ^ swapped;
         }
     }
+
+    for (size_t i = 0; i < output_size / 8; i++) {
+        eprintf("0x%016lX", ((uint64_t *)output)[i]);
+    }
+
+    free(samples);
+    free(output);
 }
