@@ -6,7 +6,9 @@
 
 #define eprintf(fmt, ...) fprintf(stderr, fmt "\n", __VA_ARGS__)
 
-#define AT_CCML_MAX_SYSTEM_SIZE 8
+#define AT_CCML_MAX_SYSTEM_SIZE     8
+#define AT_CCML_COUPLING_CONST      0.05
+#define AT_CCML_CONTR_PARAM         1.99999
 
 static void at_assert_little_endian() {
     int i = 1;
@@ -42,14 +44,30 @@ static void at_ccml_perturb_state(double state[8],
     }
 }
 
+static double at_ccml_tent_map(double x) {
+    assert(x >= 0 && x <= 1);
+
+    if (x < 0.5) {
+        return AT_CCML_CONTR_PARAM * x;
+    } else {
+        return AT_CCML_CONTR_PARAM * (1 - x);
+    }
+}
+
 /* `x` = x^i_t, 
    `x_left` = x^{i-1 mod L}_t, 
    `x_right` = x^{i+1 mod L}_t 
    
    returns x^i_{t+1} */
 static double at_ccml_iteration(double x, double x_left, double x_right) {
-    (void)x_left, (void)x_right;
-    return x;
+    double f        = at_ccml_tent_map(x);
+    double f_left   = at_ccml_tent_map(x_left);
+    double f_right  = at_ccml_tent_map(x_right);
+    
+    double self_part  = (1 - AT_CCML_COUPLING_CONST) * f;
+    double cross_part = (AT_CCML_COUPLING_CONST / 2) * (f_left + f_right);
+
+    return  self_part + cross_part;
 }
 
 static inline uint64_t at_bitwise_double_to_u64(double d) {
