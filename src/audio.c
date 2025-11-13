@@ -1,7 +1,8 @@
+#include "audio.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-int main() {
+int at_read_audio() {
     FILE *file_pointer = NULL;
     long file_size = 0;
     unsigned char *file_buffer = NULL;
