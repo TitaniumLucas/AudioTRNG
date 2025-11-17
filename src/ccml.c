@@ -4,7 +4,11 @@
 #include <string.h>
 #include <assert.h>
 
+#if NDEBUG
+#define eprintf(fmt, ...)
+#else
 #define eprintf(fmt, ...) fprintf(stderr, fmt "\n", __VA_ARGS__)
+#endif
 
 #define AT_CCML_MAX_SYSTEM_SIZE     8
 #define AT_CCML_COUPLING_CONST      0.05
@@ -84,7 +88,7 @@ void at_coupled_chaotic_map_lattice() {
     /* The double-to-u64 cast only works if the system is little endian. */
     at_assert_little_endian();
 
-    size_t output_size_bits = 2048; /* = N */
+    size_t output_size_bits = 1024 * 1024 * 8; /* = N */
     size_t output_size = output_size_bits / 8;
 
     /* Assert output size in bytes is multiple of 256, for convenience. */
@@ -113,7 +117,8 @@ void at_coupled_chaotic_map_lattice() {
     at_init_ccml_state(state);
 
     for (size_t block = 0; block < output_size / block_output_size; block++) {
-        at_ccml_perturb_state(state, samples + 0, system_size); // TODO: move through samples
+        uint8_t *block_samples = samples + block * system_size;
+        at_ccml_perturb_state(state, block_samples, system_size);
 
         for (size_t i = 0; i < n_iterations; i++) {
             double next_state[AT_CCML_MAX_SYSTEM_SIZE];
@@ -146,6 +151,12 @@ void at_coupled_chaotic_map_lattice() {
     for (size_t i = 0; i < output_size / 8; i++) {
         eprintf("0x%016lX", ((uint64_t *)output)[i]);
     }
+
+    // Temporary write to output file for quick testing
+    FILE *fp = fopen("output.bin", "wb");
+    assert(fp != NULL);
+    fwrite(output, 1, output_size, fp);
+    fclose(fp);
 
     free(samples);
     free(output);

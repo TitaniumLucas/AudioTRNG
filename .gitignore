@@ -1,6 +1,9 @@
 # Executable
 audiotrng
 
+# Binary output files
+*.bin
+
 # Prerequisites
 *.d
 
