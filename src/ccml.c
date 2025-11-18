@@ -148,9 +148,9 @@ void at_coupled_chaotic_map_lattice() {
         }
     }
 
-    for (size_t i = 0; i < output_size / 8; i++) {
-        eprintf("0x%016lX", ((uint64_t *)output)[i]);
-    }
+    // for (size_t i = 0; i < output_size / 8; i++) {
+    //     eprintf("0x%016lX", ((uint64_t *)output)[i]);
+    // }
 
     // Temporary write to output file for quick testing
     FILE *fp = fopen("output.bin", "wb");

@@ -14,7 +14,7 @@ DEPS = $(OBJECTS:.o=.d)
 all: $(TARGET)
 
 $(TARGET): $(OBJECTS)
-	$(CC) $(CFLAGS) $(INCFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(INCFLAGS) -o $@ $^ `sdl2-config --cflags --libs`
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(INCFLAGS) -MMD -o $@ -c $<
