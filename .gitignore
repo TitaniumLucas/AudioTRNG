@@ -3,6 +3,7 @@ audiotrng
 
 # Binary output files
 *.bin
+*.wav
 
 # Prerequisites
 *.d

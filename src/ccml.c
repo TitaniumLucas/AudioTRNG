@@ -1,4 +1,5 @@
 #include "ccml.h"
+#include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -102,11 +103,11 @@ void at_coupled_chaotic_map_lattice() {
 
     size_t block_output_size = system_size / 2 * sizeof(uint64_t);
 
-    uint8_t *samples = malloc(sample_size);
+    uint8_t *samples = at_xmalloc(sample_size);
     assert(samples != NULL);
     at_init_samples(samples, sample_size);
 
-    uint8_t *output = malloc(output_size);
+    uint8_t *output = at_xmalloc(output_size);
     assert(output != NULL);
 
     for (size_t i = 0; i < sample_size; i++) {

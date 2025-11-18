@@ -1,4 +1,5 @@
 #include "audio.h"
+#include "utils.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +19,7 @@ static void at_record_audio_callback(void *ctx, Uint8 *stream, int len) {
             buf->cap *= 2;
         }
 
-        buf->data = realloc(buf->data, buf->cap);
+        buf->data = at_xrealloc(buf->data, buf->cap);
     }
 
     memcpy(buf->data + buf->size, stream, len);
@@ -65,7 +66,7 @@ uint8_t *at_record_audio(size_t output_size) {
         .cap    = 1024,
         .size   = 0,
     };
-    buf.data = malloc(buf.cap);
+    buf.data = at_xmalloc(buf.cap);
 
     char const *device_name = at_select_audio_device();
     printf("Opening '%s'...\n", device_name);
@@ -114,6 +115,41 @@ uint8_t *at_record_audio(size_t output_size) {
     fclose(fp);
 
     return buf.data; // FIXME: This is leaked upon errors, I know
+}
+
+uint8_t *at_load_wav(char const *fn, size_t *size) {
+    SDL_AudioSpec spec;
+    Uint8 *buf;
+    Uint32 len;
+
+    if (SDL_LoadWAV(fn, &spec, &buf, &len) == NULL) {
+        fprintf(stderr, "SDL_LoadWAV failed: %s\n", SDL_GetError());
+        return NULL;
+    }
+
+    SDL_AudioCVT cvt;
+    if (SDL_BuildAudioCVT(&cvt,
+            spec.format, spec.channels, spec.freq,
+            AUDIO_U8, 1, 44100) < 0) {
+        fprintf(stderr, "SDL_BuildAudioCVT failed: %s\n", SDL_GetError());
+        SDL_FreeWAV(buf);
+        return NULL;
+    }
+
+    cvt.len = len;
+    cvt.buf = at_xmalloc(len * cvt.len_mult);
+
+    memcpy(cvt.buf, buf, len);
+    SDL_FreeWAV(buf);
+
+    if (SDL_ConvertAudio(&cvt) < 0) {
+        fprintf(stderr, "SDL_ConvertAudio failed: %s\n", SDL_GetError());
+        free(cvt.buf);
+        return NULL;
+    }
+
+    *size = cvt.len_cvt;
+    return cvt.buf;
 }
 
 int at_read_audio() {

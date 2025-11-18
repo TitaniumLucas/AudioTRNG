@@ -1,7 +1,7 @@
 TARGET = audiotrng
 
 CC = gcc
-INC_DIR = inc
+INC_DIR = 
 SRC_DIR = src
 CFLAGS = -Wall -Wextra -Wpedantic -Werror -Wfatal-errors -std=c99 -O3 -g
 
