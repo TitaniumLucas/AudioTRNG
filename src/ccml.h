@@ -4,7 +4,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-void at_coupled_chaotic_map_lattice();
+size_t at_ccml_get_input_size(size_t output_size);
+
+uint8_t *at_ccml(uint8_t *data, size_t output_size);
 
 #endif
 

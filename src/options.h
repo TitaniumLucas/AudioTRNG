@@ -15,7 +15,7 @@ typedef struct {
     char const *input_filename;
     at_input_type_t input_type;
     size_t concat_lsbs;
-    size_t min_output_size;
+    size_t output_size;
     char const *output_filename;
     bool entropy;
 } at_opts_t;

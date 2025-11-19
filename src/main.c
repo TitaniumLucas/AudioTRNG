@@ -83,7 +83,7 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
             if (size < 0) {
                 argp_error(state, "Invalid size literal");
             }
-            at_opts.min_output_size = size;
+            at_opts.output_size = size;
             break;
         }
 
@@ -116,12 +116,32 @@ static struct argp argp = {
     NULL,
 };
 
+static size_t at_calculate_start_data_size(void) {
+    size_t data_size = at_opts.output_size;
+    
+    if (false) { // TODO: if ccml...
+        data_size = at_ccml_get_input_size(data_size);
+    }
+    
+    if (at_opts.concat_lsbs) {
+        data_size = at_concat_lsbs_get_input_size(data_size);
+    }
+
+    return data_size;
+}
+
 int main(int argc, char *argv[]) {
     argp_parse(&argp, argc, argv, 0, 0, NULL);
 
+    at_opts.output_size = at_align_up(at_opts.output_size, 1024);
+    printf("Generating %zu bytes of random output...\n", at_opts.output_size);
+
+    size_t data_size = at_calculate_start_data_size();
+    printf("Requires %zu input bytes.\n", data_size);
+
     SDL_Init(SDL_INIT_AUDIO);
 
-    size_t data_size = 1024 * 1024;
+    size_t input_size = 0;
     uint8_t *data = NULL;
 
     switch (at_opts.input_type) {
@@ -129,16 +149,24 @@ int main(int argc, char *argv[]) {
             break;
 
         case AT_INPUT_WAV_FILE: 
-            data = at_load_wav(at_opts.input_filename, &data_size);
+            data = at_load_wav(at_opts.input_filename, &input_size);
             break;
 
         case AT_INPUT_BIN_FILE:
-            data = at_load_bin(at_opts.input_filename, &data_size);
+            data = at_load_bin(at_opts.input_filename, &input_size);
             break;
 
         case AT_INPUT_RECORD:
-            data = at_record_audio(data_size);
+            input_size = data_size;
+            data = at_record_audio(input_size);
             break;
+    }
+
+    if (input_size < data_size) {
+        printf("Insufficient data from input:"
+               " requires %zu bytes, but got %zu bytes.\n",
+               data_size, input_size);
+        return 1;
     }
 
     assert(data != NULL);
@@ -149,8 +177,7 @@ int main(int argc, char *argv[]) {
 
     if (at_opts.concat_lsbs > 0) {
         size_t concat_size;
-        uint8_t *concat = at_concat_lsbs(data, data_size, 
-                                         at_opts.concat_lsbs, &concat_size);
+        uint8_t *concat = at_concat_lsbs(data, data_size, &concat_size);
         if (at_opts.entropy) {
             printf("LSB Concat entropy: %f per byte\n",
                    at_calculate_ent_entropy(concat, concat_size));

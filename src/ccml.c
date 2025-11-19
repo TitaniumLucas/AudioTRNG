@@ -20,14 +20,6 @@ static void at_assert_little_endian() {
     assert(*((char *)&i) == 1);
 }
 
-/* Temporary, would be replaced by requesting an audio recording 
-   containing `sample_size` samples of 1 byte each. */
-static void at_init_samples(uint8_t *samples, size_t sample_size) {
-    for (size_t i = 0; i < sample_size; i++) {
-        samples[i] = i & 0xFF;
-    }
-}
-
 static void at_init_ccml_state(double state[8]) {
     state[0] = 0.141592;
     state[1] = 0.653589;
@@ -85,27 +77,27 @@ static inline uint64_t at_bitwise_swap(uint64_t u64) {
     return ((u64 & 0xFFFFFFFFULL) << 32) | ((u64 >> 32) & 0xFFFFFFFFULL);
 }
 
-void at_coupled_chaotic_map_lattice() {
+size_t at_ccml_get_input_size(size_t output_size) {
+    // Per L samples, 8 * L / 2 = 4 * L output is produced.
+    // So: N bytes of output requires N / 4 samples
+    return output_size / 4;
+}
+
+uint8_t *at_ccml(uint8_t *samples, size_t output_size) {
     /* The double-to-u64 cast only works if the system is little endian. */
     at_assert_little_endian();
 
-    size_t output_size_bits = 1024 * 1024 * 8; /* = N */
-    size_t output_size = output_size_bits / 8;
-
-    /* Assert output size in bytes is multiple of 256, for convenience. */
-    assert(output_size_bits % 32 == 0);
+    /* Assert output size in bytes is multiple of 4, for convenience. */
+    assert(output_size % 4 == 0);
 
     size_t system_size = 8; /* = L */    
     assert(system_size % 2 == 0);
 
     size_t n_iterations = system_size / 2; /* = lambda */
-    size_t sample_size = output_size_bits / 32; /* = n */
+    size_t sample_size = at_ccml_get_input_size(output_size); /* = n */
 
     size_t block_output_size = system_size / 2 * sizeof(uint64_t);
-
-    uint8_t *samples = at_xmalloc(sample_size);
-    assert(samples != NULL);
-    at_init_samples(samples, sample_size);
+    size_t n_blocks = output_size / block_output_size;
 
     uint8_t *output = at_xmalloc(output_size);
     assert(output != NULL);
@@ -117,7 +109,8 @@ void at_coupled_chaotic_map_lattice() {
     double state[8];
     at_init_ccml_state(state);
 
-    for (size_t block = 0; block < output_size / block_output_size; block++) {
+    for (size_t block = 0; block < n_blocks; block++) {
+        // Per block, SYSTEM_SIZE samples are used to perturb the state.
         uint8_t *block_samples = samples + block * system_size;
         at_ccml_perturb_state(state, block_samples, system_size);
 
@@ -139,6 +132,7 @@ void at_coupled_chaotic_map_lattice() {
             local_output[i] = at_bitwise_double_to_u64(state[i]);
         }
 
+        // Each block consists of SYSTEM_SIZE / 2 * 8 bytes of output.
         size_t output_index = block * block_output_size;
         uint64_t *block_output = (uint64_t *)(output + output_index);
         for (size_t i = 0; i < system_size / 2; i++) {
@@ -149,16 +143,7 @@ void at_coupled_chaotic_map_lattice() {
         }
     }
 
-    // for (size_t i = 0; i < output_size / 8; i++) {
-    //     eprintf("0x%016lX", ((uint64_t *)output)[i]);
-    // }
-
-    // Temporary write to output file for quick testing
-    FILE *fp = fopen("output.bin", "wb");
-    assert(fp != NULL);
-    fwrite(output, 1, output_size, fp);
-    fclose(fp);
-
     free(samples);
-    free(output);
+
+    return output;
 }

@@ -92,3 +92,13 @@ end:
         return -1;
     }
 }
+
+size_t at_align_up(size_t n, size_t align) {
+    size_t rem = n % align;
+    
+    if (rem == 0) {
+        return n;
+    } else {
+        return n + (align - rem);
+    }
+}
