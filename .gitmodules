@@ -1,0 +1,3 @@
+[submodule "libs/ent"]
+	path = libs/ent
+	url = git@github.com:ProhtMeyhet/ent-random-entropy-test.git
