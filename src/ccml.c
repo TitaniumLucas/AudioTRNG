@@ -17,6 +17,7 @@
 
 static void at_assert_little_endian() {
     int i = 1;
+    (void)i;
     assert(*((char *)&i) == 1);
 }
 

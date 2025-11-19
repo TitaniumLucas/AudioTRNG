@@ -3,7 +3,7 @@ TARGET = audiotrng
 CC = gcc
 INC_DIR = libs
 SRC_DIR = src
-CFLAGS = -Wall -Wextra -Wpedantic -Werror -Wfatal-errors -std=c99 -O3 -g
+CFLAGS = -Wall -Wextra -Wpedantic -Werror -Wfatal-errors -std=c99 -O3 -DNDEBUG
 
 ENT_SOURCES = libs/ent/randtest.c
 

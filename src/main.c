@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <time.h>
 #include <math.h>
 #include <argp.h>
 #include <assert.h>
@@ -18,10 +19,10 @@ static struct argp_option at_argp_options[] = {
     { "input-wav",      'w', "FILE",  0, "Path of input WAV file", 0 },
     { "input-bin",      'b', "FILE",  0, "Path of binary input file", 0 },
     { "input-record",   'r', 0,       0, "Record new audio for input", 0 },
-    { "seconds",        'm', "MS",    0, "Milliseconds to record audio", 0 },
+    { "seconds",        's', "TIME",  0, "Milliseconds to record audio", 0 },
     { "concat-lsbs",    'c', "N",     0, "LSBs of data to use in concatentation", 1 },
     { "ccml",           'C', 0,       0, "Use CCML", 2 },
-    { "output-size",    'S', "BYTES", 0, "Minimum size of output", 3 },
+    { "output-size",    'S', "SIZE",  0, "Size of output", 3 },
     { "output",         'o', "FILE",  0, "Path of output file", 3 },
     { "entropy",        'E', 0,       0, "Compute ENT entropy at each stage", 4 },
     { "distribution",   'D', 0,       0, "Compute data distribution at each stage", 4 },
@@ -145,10 +146,56 @@ static size_t at_calculate_start_data_size(void) {
     return data_size;
 }
 
-static void at_post_stage_output(uint8_t *data, size_t data_size) {
+static void at_post_stage_output(uint8_t *data, size_t data_size, 
+                                 time_t start) {
+    clock_t delta = clock() - start;
+    double t = (double)delta / CLOCKS_PER_SEC;
+
+    if (start) {
+        printf("Stage finished in %f s.\n", t);
+        printf("Throughput: %lu bytes / s.\n", (size_t)(data_size / t));
+    }
+
     if (at_opts.entropy) {
         printf("Entropy: %f per byte\n",
                 at_calculate_ent_entropy(data, data_size));
+    }
+
+    size_t const blocksize = 100 * 1024;
+    size_t const n_blocks = data_size / blocksize;
+    
+    if (n_blocks > 2) {
+        double H_min = 0.0F, H_max = 0.0F, H_total = 0.0F;
+        double *Hs = at_xmalloc(n_blocks * sizeof(double));
+
+        for (size_t i = 0; i < n_blocks; i++) {
+            uint8_t *block = data + i * blocksize;
+            double H = at_calculate_ent_entropy(block, blocksize);
+
+            if (i == 0 || H < H_min) {
+                H_min = H;
+            }
+            if (i == 0 || H > H_max) {
+                H_max = H;
+            }
+            H_total += H;
+            Hs[i] = H;
+        }
+
+        double H_mean = H_total / n_blocks;
+
+        double H_var_total = 0.0F;
+        for (size_t i = 0; i < n_blocks; i++) {
+            double H_diff = Hs[i] - H_mean;
+            H_var_total += H_diff * H_diff;
+        }
+
+        double H_var = H_var_total / n_blocks;
+        double H_stddev = sqrt(H_var);
+
+        printf("  Mean: %f, Min: %f, Max: %f, Stddev: %f\n", 
+               H_total / n_blocks, H_min, H_max, H_stddev);
+        free(Hs);
     }
 }
 
@@ -197,14 +244,16 @@ int main(int argc, char *argv[]) {
 
     assert(data != NULL);
     printf("== %zu bytes from input source\n", data_size);
-    at_post_stage_output(data, input_size);
+    at_post_stage_output(data, input_size, 0);
 
     if (at_opts.concat_lsbs > 0) {
+        clock_t start = clock();
+
         size_t concat_size = at_concat_lsbs_get_output_size(data_size);
         uint8_t *concat = at_concat_lsbs(data, concat_size);
         
         printf("== %zu bytes after LSB Concat\n", concat_size);
-        at_post_stage_output(concat, concat_size);
+        at_post_stage_output(concat, concat_size, start);
 
         free(data);
         data = concat;
@@ -212,11 +261,13 @@ int main(int argc, char *argv[]) {
     }
 
     if (at_opts.ccml) {
+        clock_t start = clock();
+
         size_t ccml_size = at_ccml_get_output_size(data_size);
         uint8_t *ccml = at_ccml(data, ccml_size);
 
         printf("== %zu bytes after CCML\n", ccml_size);
-        at_post_stage_output(ccml, ccml_size);
+        at_post_stage_output(ccml, ccml_size, start);
 
         free(data);
         data = ccml;

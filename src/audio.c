@@ -62,7 +62,7 @@ uint8_t *at_record_audio(size_t output_size, size_t *recorded_size) {
     size_t const total_size = transient_size + safe_size + output_size;
 
     double seconds = (double)total_size / sample_rate;
-    if (1000 * seconds < at_opts.record_seconds) {
+    if (seconds < at_opts.record_seconds) {
         seconds = at_opts.record_seconds;
     }
 
