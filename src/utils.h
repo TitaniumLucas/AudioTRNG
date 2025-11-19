@@ -14,4 +14,6 @@ void at_write_binary(char const *fn, uint8_t *data, size_t size);
 
 double at_calculate_ent_entropy(uint8_t *data, size_t size);
 
+int64_t at_parse_size(char const *s);
+
 #endif

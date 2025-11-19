@@ -2,6 +2,7 @@
 #include "ent/randtest.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 
 void *at_xmalloc(size_t size) {
     void *p = malloc(size);
@@ -49,4 +50,45 @@ double at_calculate_ent_entropy(uint8_t *data, size_t size) {
     rt_end(&r_ent, &r_chisq, &r_mean, &r_montepicalc, &r_scc);
 
     return r_ent;
+}
+
+int64_t at_parse_size(char const *s) {
+    if (*s == '\0') {
+        return -1; // empty
+    }
+
+    uint64_t val = 0;
+
+    for (; *s != '\0'; s++) {
+        char c = *s;
+
+        if (isdigit(c)) {
+            val = val * 10 + c - '0';
+        } else if (c == 'k') {
+            val *= 1024ULL;
+            s++;
+            goto end;
+        } else if (c == 'M') {
+            val *= 1024ULL * 1024;
+            s++;
+            goto end;
+        } else if (c == 'G') {
+            val *= 1024ULL * 1024 * 1024;
+            s++;
+            goto end;
+        } else if (c == 'b' || c == 'B') {
+            goto end;
+        } else {
+            return -1;
+        }
+    }
+
+end:
+    if (*s == 'B' || *s == '\0') {
+        return val;
+    } else if (*s == 'b') {
+        return (val + 7) / 8;
+    } else {
+        return -1;
+    }
 }

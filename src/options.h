@@ -2,6 +2,7 @@
 #define AT_OPTIONS_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef enum {
     AT_INPUT_UNSET,
@@ -13,8 +14,10 @@ typedef enum {
 typedef struct {
     char const *input_filename;
     at_input_type_t input_type;
+    size_t concat_lsbs;
     size_t min_output_size;
     char const *output_filename;
+    bool entropy;
 } at_opts_t;
 
 extern at_opts_t at_opts;
