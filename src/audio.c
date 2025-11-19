@@ -1,5 +1,6 @@
 #include "audio.h"
 #include "utils.h"
+#include "options.h"
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,15 +54,18 @@ static const char *at_select_audio_device(void) {
     return SDL_GetAudioDeviceName(selected - 1, SDL_TRUE);
 }
 
-uint8_t *at_record_audio(size_t output_size) {
+uint8_t *at_record_audio(size_t output_size, size_t *recorded_size) {
     size_t const sample_rate = 44100;
 
     size_t const transient_size = 10000;
     size_t const safe_size = 10000; // To make sure enough audio is recorded. 
     size_t const total_size = transient_size + safe_size + output_size;
 
-    double const seconds = (double)total_size / sample_rate;
-    
+    double seconds = (double)total_size / sample_rate;
+    if (1000 * seconds < at_opts.record_seconds) {
+        seconds = at_opts.record_seconds;
+    }
+
     at_audio_buf_t buf = {
         .cap    = 1024,
         .size   = 0,
@@ -110,11 +114,10 @@ uint8_t *at_record_audio(size_t output_size) {
         return NULL;
     }
 
-    FILE *fp = fopen("output.bin", "wb");
-    fwrite(buf.data + transient_size, 1, output_size, fp);
-    fclose(fp);
+    memmove(buf.data, buf.data + transient_size, buf.size - transient_size);
+    *recorded_size = buf.size - transient_size;
 
-    return buf.data; // FIXME: This is leaked upon errors, I know
+    return buf.data;
 }
 
 uint8_t *at_load_wav(char const *fn, size_t *size) {

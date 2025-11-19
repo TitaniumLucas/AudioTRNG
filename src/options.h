@@ -14,11 +14,13 @@ typedef enum {
 typedef struct {
     char const *input_filename;
     at_input_type_t input_type;
+    double record_seconds;
     size_t concat_lsbs;
     bool ccml;
     size_t output_size;
     char const *output_filename;
     bool entropy;
+    bool distribution;
 } at_opts_t;
 
 extern at_opts_t at_opts;

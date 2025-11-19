@@ -18,11 +18,13 @@ static struct argp_option at_argp_options[] = {
     { "input-wav",      'w', "FILE",  0, "Path of input WAV file", 0 },
     { "input-bin",      'b', "FILE",  0, "Path of binary input file", 0 },
     { "input-record",   'r', 0,       0, "Record new audio for input", 0 },
+    { "seconds",        'm', "MS",    0, "Milliseconds to record audio", 0 },
     { "concat-lsbs",    'c', "N",     0, "LSBs of data to use in concatentation", 1 },
     { "ccml",           'C', 0,       0, "Use CCML", 2 },
-    { "output-size",    's', "BYTES", 0, "Minimum size of output", 3 },
+    { "output-size",    'S', "BYTES", 0, "Minimum size of output", 3 },
     { "output",         'o', "FILE",  0, "Path of output file", 3 },
-    { "entropy",        'e', 0,       0, "Compute ENT entropy at each stage", 4 },
+    { "entropy",        'E', 0,       0, "Compute ENT entropy at each stage", 4 },
+    { "distribution",   'D', 0,       0, "Compute data distribution at each stage", 4 },
     { 0 },
 };
 
@@ -68,6 +70,10 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
             at_opts.input_type = AT_INPUT_RECORD;
             break;
 
+        case 's':
+            at_opts.record_seconds = atof(arg);
+            break;
+
         case 'c':
             at_opts.concat_lsbs = atoi(arg);
             if (at_opts.concat_lsbs < 1 || at_opts.concat_lsbs > 7) {
@@ -83,7 +89,7 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
             at_opts.output_filename = arg;
             break;
 
-        case 's': {
+        case 'S': {
             int64_t size = at_parse_size(arg);
             if (size < 0) {
                 argp_error(state, "Invalid size literal");
@@ -92,8 +98,12 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
             break;
         }
 
-        case 'e':
+        case 'E':
             at_opts.entropy = true;
+            break;
+
+        case 'D':
+            at_opts.distribution = true;
             break;
 
         case ARGP_KEY_END:
@@ -135,14 +145,22 @@ static size_t at_calculate_start_data_size(void) {
     return data_size;
 }
 
+static void at_post_stage_output(uint8_t *data, size_t data_size) {
+    if (at_opts.entropy) {
+        printf("Entropy: %f per byte\n",
+                at_calculate_ent_entropy(data, data_size));
+    }
+}
+
 int main(int argc, char *argv[]) {
     argp_parse(&argp, argc, argv, 0, 0, NULL);
 
-    at_opts.output_size = at_align_up(at_opts.output_size, 1024);
-    printf("Generating %zu bytes of random output...\n", at_opts.output_size);
-
     size_t data_size = at_calculate_start_data_size();
-    printf("Requires %zu input bytes.\n", data_size);
+    if (at_opts.output_size > 0) {
+        printf("Generating %zu bytes of random output...\n", 
+               at_opts.output_size);
+        printf("Requires %zu input bytes.\n", data_size);
+    }
 
     SDL_Init(SDL_INIT_AUDIO);
 
@@ -162,8 +180,7 @@ int main(int argc, char *argv[]) {
             break;
 
         case AT_INPUT_RECORD:
-            input_size = data_size;
-            data = at_record_audio(input_size);
+            data = at_record_audio(data_size, &input_size);
             break;
     }
 
@@ -174,24 +191,20 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    assert(data != NULL);
-
-    printf("== %zu bytes from input source\n", data_size);
-
-    if (at_opts.entropy) {
-        printf("Raw data entropy: %f per byte\n", 
-               at_calculate_ent_entropy(data, data_size));
+    if (at_opts.output_size == 0) {
+        data_size = input_size;
     }
 
+    assert(data != NULL);
+    printf("== %zu bytes from input source\n", data_size);
+    at_post_stage_output(data, input_size);
+
     if (at_opts.concat_lsbs > 0) {
-        size_t concat_size = at_ccml_get_output_size(data_size);
+        size_t concat_size = at_concat_lsbs_get_output_size(data_size);
         uint8_t *concat = at_concat_lsbs(data, concat_size);
-        printf("== %zu bytes after LSB Concat\n", concat_size);
         
-        if (at_opts.entropy) {
-            printf("Entropy: %f per byte\n",
-                   at_calculate_ent_entropy(concat, concat_size));
-        }
+        printf("== %zu bytes after LSB Concat\n", concat_size);
+        at_post_stage_output(concat, concat_size);
 
         free(data);
         data = concat;
@@ -201,12 +214,9 @@ int main(int argc, char *argv[]) {
     if (at_opts.ccml) {
         size_t ccml_size = at_ccml_get_output_size(data_size);
         uint8_t *ccml = at_ccml(data, ccml_size);
-        printf("== %zu bytes after CCML\n", ccml_size);
 
-        if (at_opts.entropy) {
-            printf("Entropy: %f per byte\n", 
-                   at_calculate_ent_entropy(ccml, ccml_size));
-        }
+        printf("== %zu bytes after CCML\n", ccml_size);
+        at_post_stage_output(ccml, ccml_size);
 
         free(data);
         data = ccml;
