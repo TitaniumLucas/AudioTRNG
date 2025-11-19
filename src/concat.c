@@ -5,35 +5,28 @@
 uint8_t *at_concat_lsbs(uint8_t *input, size_t input_size, 
                         size_t lsb_n, size_t *output_size) {
     assert(lsb_n > 0 && lsb_n < 8);
-    
+
     size_t output_size_bits = input_size * lsb_n;
     *output_size = (output_size_bits + 7) / 8;
-
     uint8_t *output = at_xcalloc(*output_size);
 
-    size_t at_bit = 0, at_byte = 0;
-    uint8_t byte = 0;
+    size_t bitpos = 0; 
+
+    uint32_t mask = (1u << lsb_n) - 1u;
+
     for (size_t i = 0; i < input_size; i++) {
-        uint8_t bits = input[i] & ((1U << lsb_n) - 1U);
+        uint32_t bits = input[i] & mask;
 
-        byte |= bits << at_bit;
-        at_bit += lsb_n;
+        size_t byte_pos     = bitpos / 8;
+        size_t bit_offset   = bitpos % 8;
 
-        if (at_bit >= 8) {
-            output[at_byte] = byte;
-            at_bit -= 8;
-            at_byte++;
+        output[byte_pos] |= bits << bit_offset;
 
-            if (at_bit > 0) {
-                byte = bits >> (lsb_n - at_bit);
-            } else {
-                byte = 0;
-            }
+        if (bit_offset + lsb_n > 8) {
+            output[byte_pos + 1] |= bits >> (8 - bit_offset);
         }
-    }
 
-    if (at_bit > 0) { // Commit partial byte.
-        output[at_byte] = byte;
+        bitpos += lsb_n;
     }
 
     return output;

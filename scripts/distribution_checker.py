@@ -12,20 +12,26 @@ def analyze(data):
 
     print("Byte Frequencies")
     for byte, n in results:
-        print(f"{byte:02x}: {n}")
+        print(f"{byte:02x} ({bin(byte)}): {n}")
 
     bit_buckets = [ 0 for _ in range(8) ]
 
+    ones, zeroes = 0, 0
     for byte, n in results:
         for i in range(8):
             if byte & 0x1:
                 bit_buckets[i] += n
+                ones += n
+            else:
+                zeroes += n
 
             byte >>= 1
 
     print("Bit Frequencies: ")
     for bit, n in enumerate(bit_buckets):
         print(f"{bit}: {n}")
+
+    print(f"{zeroes} 0's, {ones} 1's")
 
     plt.plot(range(256), byte_buckets)
     plt.show()

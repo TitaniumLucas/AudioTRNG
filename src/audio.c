@@ -130,7 +130,7 @@ uint8_t *at_load_wav(char const *fn, size_t *size) {
     SDL_AudioCVT cvt;
     if (SDL_BuildAudioCVT(&cvt,
             spec.format, spec.channels, spec.freq,
-            AUDIO_U8, 1, 44100) < 0) {
+            AUDIO_U16LSB, 1, 44100) < 0) {
         fprintf(stderr, "SDL_BuildAudioCVT failed: %s\n", SDL_GetError());
         SDL_FreeWAV(buf);
         return NULL;
@@ -148,8 +148,15 @@ uint8_t *at_load_wav(char const *fn, size_t *size) {
         return NULL;
     }
 
-    *size = cvt.len_cvt;
-    return cvt.buf;
+    uint8_t *cbuf = at_xmalloc(cvt.len_cvt / 2);
+
+    for (int i = 0; i < cvt.len_cvt / 2; i++) {
+        cbuf[i] = cvt.buf[2 * i + 1];
+    }
+
+    free(cvt.buf);
+    *size = cvt.len_cvt / 2;
+    return cbuf;
 }
 
 int at_read_audio() {
