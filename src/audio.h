@@ -8,6 +8,6 @@ uint8_t *at_record_audio(size_t output_size);
 
 uint8_t *at_load_wav(char const *fn, size_t *size);
 
-int at_read_audio();
+uint8_t *at_load_bin(char const *fn, size_t *size);
 
 #endif
