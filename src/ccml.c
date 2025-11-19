@@ -83,6 +83,10 @@ size_t at_ccml_get_input_size(size_t output_size) {
     return output_size / 4;
 }
 
+size_t at_ccml_get_output_size(size_t input_size) {
+    return input_size * 4;
+}
+
 uint8_t *at_ccml(uint8_t *samples, size_t output_size) {
     /* The double-to-u64 cast only works if the system is little endian. */
     at_assert_little_endian();
@@ -142,8 +146,6 @@ uint8_t *at_ccml(uint8_t *samples, size_t output_size) {
             block_output[i] = local_output[i] ^ swapped;
         }
     }
-
-    free(samples);
 
     return output;
 }

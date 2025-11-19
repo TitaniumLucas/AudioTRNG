@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 size_t at_ccml_get_input_size(size_t output_size);
+size_t at_ccml_get_output_size(size_t input_size);
 
 uint8_t *at_ccml(uint8_t *data, size_t output_size);
 

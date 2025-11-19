@@ -19,9 +19,10 @@ static struct argp_option at_argp_options[] = {
     { "input-bin",      'b', "FILE",  0, "Path of binary input file", 0 },
     { "input-record",   'r', 0,       0, "Record new audio for input", 0 },
     { "concat-lsbs",    'c', "N",     0, "LSBs of data to use in concatentation", 1 },
-    { "output-size",    's', "BYTES", 0, "Minimum size of output", 2 },
-    { "output",         'o', "FILE",  0, "Path of output file", 2 },
-    { "entropy",        'e', 0,       0, "Compute ENT entropy at each stage", 3 },
+    { "ccml",           'C', 0,       0, "Use CCML", 2 },
+    { "output-size",    's', "BYTES", 0, "Minimum size of output", 3 },
+    { "output",         'o', "FILE",  0, "Path of output file", 3 },
+    { "entropy",        'e', 0,       0, "Compute ENT entropy at each stage", 4 },
     { 0 },
 };
 
@@ -74,6 +75,10 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
             }
             break;
 
+        case 'C':
+            at_opts.ccml = true;
+            break;
+
         case 'o':
             at_opts.output_filename = arg;
             break;
@@ -119,7 +124,7 @@ static struct argp argp = {
 static size_t at_calculate_start_data_size(void) {
     size_t data_size = at_opts.output_size;
     
-    if (false) { // TODO: if ccml...
+    if (at_opts.ccml) {
         data_size = at_ccml_get_input_size(data_size);
     }
     
@@ -170,22 +175,42 @@ int main(int argc, char *argv[]) {
     }
 
     assert(data != NULL);
+
+    printf("== %zu bytes from input source\n", data_size);
+
     if (at_opts.entropy) {
         printf("Raw data entropy: %f per byte\n", 
                at_calculate_ent_entropy(data, data_size));
     }
 
     if (at_opts.concat_lsbs > 0) {
-        size_t concat_size;
-        uint8_t *concat = at_concat_lsbs(data, data_size, &concat_size);
+        size_t concat_size = at_ccml_get_output_size(data_size);
+        uint8_t *concat = at_concat_lsbs(data, concat_size);
+        printf("== %zu bytes after LSB Concat\n", concat_size);
+        
         if (at_opts.entropy) {
-            printf("LSB Concat entropy: %f per byte\n",
+            printf("Entropy: %f per byte\n",
                    at_calculate_ent_entropy(concat, concat_size));
         }
 
         free(data);
         data = concat;
         data_size = concat_size;
+    }
+
+    if (at_opts.ccml) {
+        size_t ccml_size = at_ccml_get_output_size(data_size);
+        uint8_t *ccml = at_ccml(data, ccml_size);
+        printf("== %zu bytes after CCML\n", ccml_size);
+
+        if (at_opts.entropy) {
+            printf("Entropy: %f per byte\n", 
+                   at_calculate_ent_entropy(ccml, ccml_size));
+        }
+
+        free(data);
+        data = ccml;
+        data_size = ccml_size;
     }
 
     at_write_binary(at_opts.output_filename, data, data_size);
