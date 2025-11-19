@@ -1,4 +1,5 @@
 #include "utils.h"
+#include "ent/randtest.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -38,4 +39,14 @@ void at_write_binary(char const *fn, uint8_t *data, size_t size) {
 
     fwrite(data, 1, size, fp);
     fclose(fp);
+}
+
+double at_calculate_ent_entropy(uint8_t *data, size_t size) {
+    rt_init(0);
+    rt_add(data, size);
+
+    double r_ent, r_chisq, r_mean, r_montepicalc, r_scc;
+    rt_end(&r_ent, &r_chisq, &r_mean, &r_montepicalc, &r_scc);
+
+    return r_ent;
 }

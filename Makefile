@@ -1,12 +1,14 @@
 TARGET = audiotrng
 
 CC = gcc
-INC_DIR = 
+INC_DIR = libs
 SRC_DIR = src
 CFLAGS = -Wall -Wextra -Wpedantic -Werror -Wfatal-errors -std=c99 -O3 -g
 
+ENT_SOURCES = libs/ent/randtest.c
+
 INCFLAGS = $(addprefix -I, $(INC_DIR))
-SOURCES = $(sort $(shell find $(SRC_DIR) -name '*.c'))
+SOURCES = $(sort $(shell find $(SRC_DIR) -name '*.c')) $(ENT_SOURCES)
 OBJECTS = $(SOURCES:.c=.o)
 DEPS = $(OBJECTS:.o=.d)
 
