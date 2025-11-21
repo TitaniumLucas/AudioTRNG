@@ -117,6 +117,10 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
             }
 
             break;
+
+        default:
+            argp_error(state, "Unrecognized option: %c", key);
+            break;
     }
 
     return 0;
@@ -243,8 +247,8 @@ int main(int argc, char *argv[]) {
     }
 
     assert(data != NULL);
-    printf("== %zu bytes from input source\n", data_size);
-    at_post_stage_output(data, input_size, 0);
+    printf("%zu bytes from input source\n", data_size);
+    at_post_stage_output(data, data_size, 0);
 
     if (at_opts.concat_lsbs > 0) {
         clock_t start = clock();
@@ -252,7 +256,8 @@ int main(int argc, char *argv[]) {
         size_t concat_size = at_concat_lsbs_get_output_size(data_size);
         uint8_t *concat = at_concat_lsbs(data, concat_size);
         
-        printf("== %zu bytes after LSB Concat\n", concat_size);
+        printf("\n== LSB Concat ==\n");
+        printf("%zu bytes after LSB Concat\n", concat_size);
         at_post_stage_output(concat, concat_size, start);
 
         free(data);
@@ -266,7 +271,8 @@ int main(int argc, char *argv[]) {
         size_t ccml_size = at_ccml_get_output_size(data_size);
         uint8_t *ccml = at_ccml(data, ccml_size);
 
-        printf("== %zu bytes after CCML\n", ccml_size);
+        printf("\n== CCML ==\n");
+        printf("%zu bytes after CCML\n", ccml_size);
         at_post_stage_output(ccml, ccml_size, start);
 
         free(data);
