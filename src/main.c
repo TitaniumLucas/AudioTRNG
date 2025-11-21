@@ -160,10 +160,12 @@ static void at_post_stage_output(uint8_t *data, size_t data_size,
         printf("Throughput: %lu bytes / s.\n", (size_t)(data_size / t));
     }
 
-    if (at_opts.entropy) {
-        printf("Entropy: %f per byte\n",
-                at_calculate_ent_entropy(data, data_size));
+    if (!at_opts.entropy) {
+        return;
     }
+
+    printf("Entropy: %f per byte\n",
+           at_calculate_ent_entropy(data, data_size));
 
     size_t const blocksize = 100 * 1024;
     size_t const n_blocks = data_size / blocksize;
