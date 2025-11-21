@@ -25,6 +25,8 @@ static void at_record_audio_callback(void *ctx, Uint8 *stream, int len) {
 
     memcpy(buf->data + buf->size, stream, len);
     buf->size += len;
+
+    fprintf(stderr, "* Added %d to data\n", len);
 }
 
 static const char *at_select_audio_device(void) {
