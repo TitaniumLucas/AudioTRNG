@@ -118,9 +118,9 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
 
             break;
 
-        default:
-            argp_error(state, "Unrecognized option: %c", key);
-            break;
+        // default:
+        //     argp_error(state, "Unrecognized option: %c", key);
+        //     break;
     }
 
     return 0;
