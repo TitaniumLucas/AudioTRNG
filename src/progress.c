@@ -7,7 +7,7 @@
 
 static void at_progstate_redraw(at_progstate_t *prog) {
     for (size_t i = 0; i < prog->infolines + 1; i++) {
-        printf(AT_ANSI_CURSOR_UP(1));
+        printf(AT_ANSI_CURSOR_UP(1) AT_ANSI_CLEAR_LINE());
     }
 
     putc('[', stdout);

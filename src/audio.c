@@ -149,7 +149,7 @@ uint8_t *at_record_audio(size_t output_size, size_t *recorded_size) {
             printf("Low variance (%.2f): dropping sample blocks!\n", 
                    buf.var);
         } else {
-            printf("%ld B / %ld B | Variance: %.2f... \n", 
+            printf("%ld / %ld bytes | Variance: %.2f... \n", 
                    buf.size, total_size, buf.var);
         }
 
