@@ -122,8 +122,8 @@ uint8_t *at_record_audio(size_t output_size, size_t *recorded_size) {
 
     if (buf.size < transient_size + output_size) {
         printf("Fatal: Recording ended prematurely "
-               "(%zu / %zu bytes collected).\n", 
-               buf.size - transient_size, output_size);
+               "(%d / %zu bytes collected).\n", 
+               (int)(buf.size - transient_size), output_size);
         return NULL;
     }
 
