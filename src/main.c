@@ -241,6 +241,10 @@ int main(int argc, char *argv[]) {
             break;
     }
 
+    if (data == NULL) {
+        return 1;
+    }
+
     if (input_size < data_size) {
         printf("Insufficient data from input:"
                " requires %zu bytes, but got %zu bytes.\n",
@@ -252,7 +256,6 @@ int main(int argc, char *argv[]) {
         data_size = input_size;
     }
 
-    assert(data != NULL);
     printf("%zu bytes from input source\n", data_size);
     at_post_stage_output(data, data_size, 0);
 
