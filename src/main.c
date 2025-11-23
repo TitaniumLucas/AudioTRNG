@@ -20,6 +20,7 @@ static struct argp_option at_argp_options[] = {
     { "input-bin",      'b', "FILE",  0, "Path of binary input file", 0 },
     { "input-record",   'r', 0,       0, "Record new audio for input", 0 },
     { "seconds",        's', "TIME",  0, "Milliseconds to record audio", 0 },
+    { "variance",       'v', "VAR",   0, "Variance threshold for recording", 0 },
     { "concat-lsbs",    'c', "N",     0, "LSBs of data to use in concatentation", 1 },
     { "ccml",           'C', 0,       0, "Use CCML", 2 },
     { "output-size",    'S', "SIZE",  0, "Size of output", 3 },
@@ -73,6 +74,10 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
 
         case 's':
             at_opts.record_seconds = atof(arg);
+            break;
+
+        case 'v':
+            at_opts.record_variance_threshold = atof(arg);
             break;
 
         case 'c':

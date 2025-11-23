@@ -27,7 +27,7 @@ uint8_t *at_concat_lsbs(uint8_t *input, size_t output_size) {
     uint32_t mask = (1u << lsb_n) - 1u;
 
     at_progstate_t prog;
-    at_progstate_init(&prog, input_size);
+    at_progstate_init(&prog, input_size, 0);
     at_progstate_start(&prog);
 
     for (size_t i = 0; i < input_size; i++) {

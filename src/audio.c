@@ -5,16 +5,42 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <assert.h>
 
 typedef struct {
     uint8_t *data;
     size_t size;
     size_t cap;
+    double var;
+    bool dropping;
 } at_audio_buf_t;
+
+static double at_get_variance(Uint8 *buf, int len) {
+    double sum = 0, sumsq = 0;
+
+    for (int i = 0; i < len; i++) {
+        Uint8 sample = buf[i];
+
+        sum += sample;
+        sumsq += (double)sample * sample;
+    }
+
+    double mean = sum / len;
+    return sumsq / len - mean * mean;
+}
 
 static void at_record_audio_callback(void *ctx, Uint8 *stream, int len) {
     at_audio_buf_t *buf = ctx;
+
+    buf->var = at_get_variance(stream, len);
+
+    if (buf->var < at_opts.record_variance_threshold) {
+        buf->dropping = true;
+        return;
+    } else {
+        buf->dropping = false;
+    }
 
     if (buf->size + len >= buf->cap) {
         while (buf->size + len >= buf->cap) {
@@ -26,8 +52,6 @@ static void at_record_audio_callback(void *ctx, Uint8 *stream, int len) {
 
     memcpy(buf->data + buf->size, stream, len);
     buf->size += len;
-
-    //fprintf(stderr, "* Added %d to data\n", len);
 }
 
 static const char *at_select_audio_device(void) {
@@ -101,16 +125,34 @@ uint8_t *at_record_audio(size_t output_size, size_t *recorded_size) {
     }   
 
     double seconds = (double)total_size / sample_rate;
-    printf("Opened successfully. Recording for %.2f seconds...\n", seconds);
+    printf("Opened successfully. Recording for %.2f seconds", seconds);
     
+    if (at_opts.record_variance_threshold) {
+        printf(" with variance threshold %f...\n", 
+               at_opts.record_variance_threshold);
+    } else {
+        printf("\n");
+    }
+
     at_progstate_t prog;
-    at_progstate_init(&prog, total_size);
+    at_progstate_init(&prog, total_size, 1);
     at_progstate_start(&prog);
 
     SDL_PauseAudioDevice(dev, 0);
 
     while (buf.size < total_size) {
-        at_progstate_update(&prog, buf.size);
+        if (!at_progstate_update(&prog, buf.size)) {
+            at_progstate_to_infoline(&prog);
+        }
+
+        if (buf.dropping) {
+            printf("Low variance (%.2f): dropping sample blocks!\n", 
+                   buf.var);
+        } else {
+            printf("%ld B / %ld B | Variance: %.2f... \n", 
+                   buf.size, total_size, buf.var);
+        }
+
         SDL_Delay(100);
     }
 

@@ -15,6 +15,7 @@ typedef struct {
     char const *input_filename;
     at_input_type_t input_type;
     double record_seconds;
+    double record_variance_threshold;
     size_t concat_lsbs;
     bool ccml;
     size_t output_size;

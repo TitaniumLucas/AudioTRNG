@@ -109,7 +109,7 @@ uint8_t *at_ccml(uint8_t *samples, size_t output_size) {
     assert(output != NULL);
 
     at_progstate_t prog;
-    at_progstate_init(&prog, n_blocks);
+    at_progstate_init(&prog, n_blocks, 0);
 
     for (size_t i = 0; i < sample_size; i++) {
         samples[i] &= 0x07;
