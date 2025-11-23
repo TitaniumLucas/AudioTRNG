@@ -118,9 +118,8 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
 
             break;
 
-        // default:
-        //     argp_error(state, "Unrecognized option: %c", key);
-        //     break;
+        default:
+            return ARGP_ERR_UNKNOWN;
     }
 
     return 0;
@@ -253,12 +252,13 @@ int main(int argc, char *argv[]) {
     at_post_stage_output(data, data_size, 0);
 
     if (at_opts.concat_lsbs > 0) {
+        printf("\n== LSB Concat ==\n");
+
         clock_t start = clock();
 
         size_t concat_size = at_concat_lsbs_get_output_size(data_size);
         uint8_t *concat = at_concat_lsbs(data, concat_size);
         
-        printf("\n== LSB Concat ==\n");
         printf("%zu bytes after LSB Concat\n", concat_size);
         at_post_stage_output(concat, concat_size, start);
 
@@ -268,12 +268,13 @@ int main(int argc, char *argv[]) {
     }
 
     if (at_opts.ccml) {
+        printf("\n== CCML ==\n");
+
         clock_t start = clock();
 
         size_t ccml_size = at_ccml_get_output_size(data_size);
         uint8_t *ccml = at_ccml(data, ccml_size);
 
-        printf("\n== CCML ==\n");
         printf("%zu bytes after CCML\n", ccml_size);
         at_post_stage_output(ccml, ccml_size, start);
 

@@ -1,4 +1,5 @@
 #include "ccml.h"
+#include "progress.h"
 #include "utils.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -107,12 +108,17 @@ uint8_t *at_ccml(uint8_t *samples, size_t output_size) {
     uint8_t *output = at_xmalloc(output_size);
     assert(output != NULL);
 
+    at_progstate_t prog;
+    at_progstate_init(&prog, n_blocks);
+
     for (size_t i = 0; i < sample_size; i++) {
         samples[i] &= 0x07;
     }
 
     double state[8];
     at_init_ccml_state(state);
+
+    at_progstate_start(&prog);
 
     for (size_t block = 0; block < n_blocks; block++) {
         // Per block, SYSTEM_SIZE samples are used to perturb the state.
@@ -146,7 +152,11 @@ uint8_t *at_ccml(uint8_t *samples, size_t output_size) {
 
             block_output[i] = local_output[i] ^ swapped;
         }
+
+        at_progstate_update(&prog, block);
     }
+
+    at_progstate_end(&prog);
 
     return output;
 }

@@ -1,4 +1,5 @@
 #include "audio.h"
+#include "progress.h"
 #include "utils.h"
 #include "options.h"
 #include <SDL2/SDL.h>
@@ -26,7 +27,7 @@ static void at_record_audio_callback(void *ctx, Uint8 *stream, int len) {
     memcpy(buf->data + buf->size, stream, len);
     buf->size += len;
 
-    fprintf(stderr, "* Added %d to data\n", len);
+    //fprintf(stderr, "* Added %d to data\n", len);
 }
 
 static const char *at_select_audio_device(void) {
@@ -57,15 +58,13 @@ static const char *at_select_audio_device(void) {
 }
 
 uint8_t *at_record_audio(size_t output_size, size_t *recorded_size) {
-    size_t const sample_rate = 44100;
+    size_t sample_rate = 44100;
 
-    size_t const transient_size = 10000;
-    size_t const safe_size = 10000; // To make sure enough audio is recorded. 
-    size_t const total_size = transient_size + safe_size + output_size;
+    size_t transient_size = 10000;
+    size_t total_size = transient_size + output_size;
 
-    double seconds = (double)total_size / sample_rate;
-    if (seconds < at_opts.record_seconds) {
-        seconds = at_opts.record_seconds;
+    if (at_opts.record_seconds * sample_rate > total_size) {
+        total_size = at_opts.record_seconds * sample_rate;
     }
 
     at_audio_buf_t buf = {
@@ -101,11 +100,23 @@ uint8_t *at_record_audio(size_t output_size, size_t *recorded_size) {
         return NULL;
     }   
 
+    double seconds = (double)total_size / sample_rate;
     printf("Opened successfully. Recording for %.2f seconds...\n", seconds);
     
+    at_progstate_t prog;
+    at_progstate_init(&prog, total_size);
+    at_progstate_start(&prog);
+
     SDL_PauseAudioDevice(dev, 0);
-    SDL_Delay(seconds * 1000);
+
+    while (buf.size < total_size) {
+        at_progstate_update(&prog, buf.size);
+        SDL_Delay(100);
+    }
+
     SDL_PauseAudioDevice(dev, 1);
+
+    at_progstate_end(&prog);
 
     SDL_CloseAudioDevice(dev);
 

@@ -1,4 +1,5 @@
 #include "concat.h"
+#include "progress.h"
 #include "utils.h"
 #include "options.h"
 #include <assert.h>
@@ -25,6 +26,10 @@ uint8_t *at_concat_lsbs(uint8_t *input, size_t output_size) {
 
     uint32_t mask = (1u << lsb_n) - 1u;
 
+    at_progstate_t prog;
+    at_progstate_init(&prog, input_size);
+    at_progstate_start(&prog);
+
     for (size_t i = 0; i < input_size; i++) {
         uint32_t bits = input[i] & mask;
 
@@ -38,7 +43,14 @@ uint8_t *at_concat_lsbs(uint8_t *input, size_t output_size) {
         }
 
         bitpos += lsb_n;
+
+        // update every ~16k items, slows down program otherwise
+        if ((i & 0xFFF) == 0) {  
+            at_progstate_update(&prog, i);
+        }
     }
+
+    at_progstate_end(&prog);
 
     return output;
 }
