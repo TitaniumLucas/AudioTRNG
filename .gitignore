@@ -5,6 +5,9 @@ audiotrng
 *.bin
 *.wav
 
+# Temporary script input files
+scripts/*.txt
+
 # Prerequisites
 *.d
 
