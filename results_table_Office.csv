@@ -1,0 +1,16 @@
+Test,P-value,Proportion,Result
+Frequency,0.488534,991/1000,Passed
+BlockFrequency,0.859637,993/1000,Passed
+CumulativeSums,0.350485,993/1000,Passed
+Runs,0.366918,991/1000,Passed
+LongestRun,0.147815,985/1000,Passed
+Rank,0.500279,994/1000,Passed
+DFT,0.120909,981/1000,Passed
+NonOverlappingTemplate,0.004270,987/1000,Passed
+OverlappingTemplate,0.823725,985/1000,Passed
+Universal,0.201189,996/1000,Passed
+ApproximateEntropy,0.193767,990/1000,Passed
+RandomExcursions,0.086822,625/628,Passed
+RandomExcursionsVariant,0.069315,621/628,Passed
+Serial,0.649612,990/1000,Passed
+LinearComplexity,0.203351,989/1000,Passed
