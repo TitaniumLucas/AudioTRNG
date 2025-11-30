@@ -21,7 +21,6 @@ typedef struct {
     size_t output_size;
     char const *output_filename;
     bool entropy;
-    bool distribution;
 } at_opts_t;
 
 extern at_opts_t at_opts;

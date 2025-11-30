@@ -10,5 +10,4 @@ at_opts_t at_opts = {
     .output_size                = 0,
     .output_filename            = NULL,
     .entropy                    = false,
-    .distribution               = false,
 };

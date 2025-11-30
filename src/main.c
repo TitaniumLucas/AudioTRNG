@@ -26,7 +26,6 @@ static struct argp_option at_argp_options[] = {
     { "output-size",    'S', "SIZE",  0, "Size of output", 3 },
     { "output",         'o', "FILE",  0, "Path of output file", 3 },
     { "entropy",        'E', 0,       0, "Compute ENT entropy at each stage", 4 },
-    { "distribution",   'D', 0,       0, "Compute data distribution at each stage", 4 },
     { 0 },
 };
 
@@ -106,10 +105,6 @@ static error_t at_parse_opt(int key, char *arg, struct argp_state *state) {
 
         case 'E':
             at_opts.entropy = true;
-            break;
-
-        case 'D':
-            at_opts.distribution = true;
             break;
 
         case ARGP_KEY_END:
