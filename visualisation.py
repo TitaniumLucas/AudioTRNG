@@ -13,13 +13,13 @@ tests = ['Frequency', 'BlockFrequency', 'CumulativeSums', 'Runs', 'LongestRun', 
 
 def summarize_multi_tests(results):
     '''
-    Summarize tests of one type to one value, only keeping the lowest p-value entry.
+    Summarize tests of one type to one value, only keeping the lowest proportion entry.
     '''
     test_results = []
     for test in tests:
         indexes = [i for i, x in enumerate(results['test']) if x == test]
-        p_values = [results['p_value'][i] for i in indexes]
-        min_test = np.argmin(p_values)
+        proportions = [results['pass_fraction'][i] for i in indexes]
+        min_test = np.argmin(proportions)
         
         test_result = 'Passed'
         # Keep only the entry with the lowest p-value
