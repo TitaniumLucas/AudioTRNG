@@ -9,25 +9,34 @@ tests = np.arange(1, 16)
 
 #Data processing
 reg = re.compile(r'^\s*(?:\d+\s+){10}([0-9]*\.?[0-9]+)\s+(\d+/\d+)\s+(?:\*\s*)?(.+?)\s*$')
-multi_tests = ['CumulativeSums', 'NonOverlappingTemplate', 'RandomExcursions', 'RandomExcursionsVariant', 'Serial'] # test types with more than 1 test performed
+tests = ['Frequency', 'BlockFrequency', 'CumulativeSums', 'Runs', 'LongestRun', 'Rank', 'DFT', 'NonOverlappingTemplate','OverlappingTemplate', 'Universal', 'ApproximateEntropy', 'RandomExcursions', 'RandomExcursionsVariant', 'Serial', 'LinearComplexity'] 
 
 def summarize_multi_tests(results):
     '''
     Summarize tests of one type to one value, only keeping the lowest p-value entry.
     '''
-    for test in multi_tests:
+    test_results = []
+    for test in tests:
         indexes = [i for i, x in enumerate(results['test']) if x == test]
         p_values = [results['p_value'][i] for i in indexes]
         min_test = np.argmin(p_values)
         
+        test_result = 'Passed'
         # Keep only the entry with the lowest p-value
         for i in sorted(indexes, reverse=True):
+            #check if a test was failed based on p-value and proportion
+            _, lower, _ = calculate_bounds(num_sequences=results['num_sequences'][i])
+            if results['p_value'][i] < 0.0001 or results['pass_fraction'][i] < lower:
+                test_result = 'Failed'
+                
             if i != indexes[min_test]:
                 results['test'].pop(i)
                 results['p_value'].pop(i)
                 results['proportion'].pop(i)
                 results['pass_fraction'].pop(i)
                 results['num_sequences'].pop(i)
+        test_results.append(test_result)
+    results['result'] = test_results
     return results
     
 def parse_nist_results(filepath):
@@ -102,11 +111,8 @@ def results_table(results, result_type="Low", p_alpha=0.0001):
     """
     cols = ['Test', 'P-value', 'Proportion', 'Result']
     rows = []
-    for name, p, prop, frac, num_seq in zip(results['test'], results['p_value'],
-                                results['proportion'], results['pass_fraction'], results['num_sequences']):
-        
-        _, lower, _ = calculate_bounds(num_sequences=num_seq)
-        result = 'Passed' if (frac >= lower and p>= p_alpha) else 'Failed'
+    for name, p, prop, result in zip(results['test'], results['p_value'],
+                                results['proportion'], results['result']):
         rows.append([name, f"{p:.6f}", prop, result])
 
     csv_path = f'results_table_{result_type}.csv'
@@ -116,19 +122,6 @@ def results_table(results, result_type="Low", p_alpha=0.0001):
             writer.writerows(rows)
     
 if __name__ == "__main__":
-    # results_low = parse_nist_results('./TestResults/Low/finalAnalysisReport.txt')
-    # results_medium = parse_nist_results('./TestResults/Medium/finalAnalysisReport.txt')
-    # results_high = parse_nist_results('./TestResults/High/finalAnalysisReport.txt')
-    # results_main = parse_nist_results('./TestResults/15-minute recording/finalAnalysisReport.txt')
-    results_office = parse_nist_results('./TestResults/Office/finalAnalysisReport.txt')
-    # proportion_plot(results_low['test'], results_low['pass_fraction'], 80, result_type="Low")
-    # proportion_plot(results_medium['test'], results_medium['pass_fraction'], 80, result_type="Medium")
-    # proportion_plot(results_high['test'], results_high['pass_fraction'], 80, result_type="High")
-    # proportion_plot(results_main['test'], results_main['pass_fraction'], 1000, result_type="15-minute recording")
+    results_office = parse_nist_results('./Office/finalAnalysisReport.txt')
     proportion_plot(results_office['test'], results_office['pass_fraction'], 1000, result_type="Office")
-    
-    # results_table(results_low, result_type="Low")
-    # results_table(results_medium, result_type="Medium")
-    # results_table(results_high, result_type="High")
-    # results_table(results_main, result_type="15-minute recording")
     results_table(results_office, result_type="Office")
